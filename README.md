@@ -14,3 +14,17 @@ Hallucination is a long-standing problem that has been actively investigated in 
 ## 📜 News
 
 **[2025/7/7]** Version 1 released.
+
+
+## 🎈 Quick Start
+
+### Inference the Qwen2.5VL with the AIpsych - COCO valid 2014 dataset
+```
+python /demo/qwen25_inference.py
+```
+
+### Evaluate the results 
+```
+python AIpysch_evaluation_v1.py --input_json "Your path to the qwen25 inference results"
+```
+
