@@ -8,3 +8,9 @@ Hallucination is a long-standing problem that has been actively investigated in 
 <div align="center">
     <img src='img/ques_tree.png'/>
 </div>
+
+
+
+## 📜 News
+
+**[2025/7/7]** Version 1 released.
