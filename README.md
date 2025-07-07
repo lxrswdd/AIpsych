@@ -25,6 +25,6 @@ python /demo/qwen25_inference.py
 
 ### Evaluate the results 
 ```
-python AIpysch_evaluation_v1.py --input_json "Your path to the qwen25 inference results"
+python AIpysch_evaluation_v1.py --input_json "Your path to the Qwen2.5VL inference results"
 ```
 
