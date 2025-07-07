@@ -6,5 +6,5 @@ Hallucination is a long-standing problem that has been actively investigated in 
 
 
 <div align="center">
-    <img src='img/ques_tree.jpg'/>
+    <img src='img/ques_tree.png'/>
 </div>
