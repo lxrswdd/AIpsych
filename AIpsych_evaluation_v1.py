@@ -357,19 +357,6 @@ def evaluate_response(response_json):
     print()
     print("Admit inable to answer the question rate:",quit_claim/question_set_num*100)
 
-    # with open("/scratch/xiangrui/project/intel/model/datasets/COCO/v2_2k_out/output_summary.txt", "a") as f:
-    #     f.write("\n")
-    #     f.write(f"{json_name}\n")
-    #     f.write("sycoI AB Syco II logicE smart else  counted full valid\n")
-    #     f.write(f"{scycophancy_rate:.2f} & {authorityBias_rate:.2f} & {scycophancyOrLogicalError_rate:.2f} & "
-    #             f"{logical_error_rate:.2f} & {smart_rate:.2f} & {else_trigger_rate:.2f} & "
-    #             f"{counted_rate:.2f} & {full_valid_answer_set_rate:.2f}\n")
-
-    #     f.write("="*20 + "\n")
-    #     f.write(f"{q2_first_part_missing_rate:.2f} & {q3_first_part_missing_rate:.2f} & "
-    #             f"{q2_second_part_missing_rate:.2f} & {q3_second_part_missing_rate:.2f} & "
-    #             f"{counted_rate:.2f} & {full_valid_answer_set_rate:.2f} & {quit_claim_rate:.2f}\n")
-
 
 if __name__ == "__main__":
 
