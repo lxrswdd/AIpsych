@@ -16,12 +16,12 @@ Hallucination is a long-standing problem that has been actively investigated in 
 ## 🎈 Quick Start
 
 ### Running the Qwen2.5VL model inference using the AIpsych - COCO valid 2014 dataset
-```
-python /demo/qwen25_inference.py
+```bash
+python ./demo/qwen25_inference.py
 ```
 
 ### Evaluate the results 
-```
-python AIpysch_evaluation_v1.py --input_json "Your path to the Qwen2.5VL inference results"
+```bash
+python evaluation_v4.py --input './demo/demo_Ovis2-2B.json'
 ```
 
