@@ -104,7 +104,7 @@ if __name__ == '__main__':
     model_id = "Qwen/Qwen2.5-VL-32B-Instruct"
 
     image_folder_dir =  "" # path to COCO val2014 folder 
-    json_file = "./question_set/VisualGenome1k_v1.json"
+    json_file = "./question_set/VisualGenome_Subet.json"
     output_name = model_id.split("/")[-1]
 
     output_file = f"inference_out/{output_name}.json" # path to your designated output folder
