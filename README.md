@@ -11,15 +11,6 @@ Hallucination is a long-standing problem that has been actively investigated in 
 
 
 
-## 📜 News
-
-**[2025/7/7]** Version 1 released.
-
-### Our results for the COCO Valid 2014 dataset.
-<div align="center">
-    <img src='img/plots.png'/>
-</div>
-
 
 
 ## 🎈 Quick Start
