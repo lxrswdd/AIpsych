@@ -152,8 +152,15 @@
       letter-spacing: 0;
       color: var(--text);
       margin: 0 auto 22px;
-      max-width: 23ch;
+      max-width: 100%;
       text-wrap: balance;
+    }
+    @media (min-width: 1200px) {
+      .paper-head .container { max-width: 1240px; }
+      h1.title {
+        font-size: 2.6rem;
+        white-space: nowrap;
+      }
     }
     h1.title::after {
       content: "";
