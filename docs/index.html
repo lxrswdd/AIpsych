@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="How Scaling VLMs Trades Cognitive Biases — AIpsych benchmark for diagnosing sycophancy, authority bias, and logical inconsistency in vision-language models. " />
+  <title>How Scaling VLMs Trades Cognitive Biases</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --text:        #15181f;
+      --text-soft:   #354052;
+      --muted:       #667085;
+      --bg:          #f8fafc;
+      --paper:       #ffffff;
+      --bg-soft:     #eef4f8;
+      --border:      #d8e0e8;
+      --accent:      #245c8a;
+      --accent-soft: #4a7eb0;
+      --accent-2:    #0f766e;
+      --accent-3:    #b45309;
+      --highlight:   #b04454;
+      --ink-blue:     #182f59;
+      --surface-blue: #e8f2fb;
+      --surface-green:#e6f5f1;
+      --surface-rose: #f9ecef;
+      --surface-amber:#fff4dd;
+      --shadow:      0 18px 48px rgba(21, 24, 31, 0.09);
+      --shadow-soft: 0 10px 26px rgba(21, 24, 31, 0.07);
+
+      --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+      --sans:  'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono:  'JetBrains Mono', Menlo, Consolas, monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      font-size: 17px;
+      line-height: 1.6;
+      color: var(--text);
+      background:
+        linear-gradient(115deg, rgba(180, 68, 84, 0.08) 0 12%, transparent 12% 100%),
+        linear-gradient(245deg, rgba(15, 118, 110, 0.08) 0 14%, transparent 14% 100%),
+        linear-gradient(90deg, rgba(36, 92, 138, 0.045) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(15, 118, 110, 0.035) 1px, transparent 1px),
+        linear-gradient(180deg, #f7fafc 0, #ffffff 430px, #f8fafc 100%);
+      background-size: auto, auto, 56px 56px, 56px 56px, auto;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--highlight), var(--accent-3));
+      z-index: 20;
+      pointer-events: none;
+    }
+    ::selection {
+      background: rgba(180, 68, 84, 0.2);
+      color: var(--text);
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    a:focus-visible {
+      outline: 3px solid rgba(36, 92, 138, 0.25);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ============ HEADER ============ */
+    header.paper-head {
+      position: relative;
+      overflow: hidden;
+      padding: 82px 0 48px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      background:
+        linear-gradient(120deg, rgba(36, 92, 138, 0.24) 0 18%, transparent 18%),
+        linear-gradient(238deg, rgba(180, 68, 84, 0.2) 0 16%, transparent 16%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(245, 249, 252, 0.84));
+    }
+    header.paper-head::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(36, 92, 138, 0.12) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(180, 68, 84, 0.09) 1px, transparent 1px);
+      background-size: 72px 72px;
+      -webkit-mask-image: linear-gradient(180deg, #000 0, rgba(0, 0, 0, 0.2) 82%, transparent 100%);
+      mask-image: linear-gradient(180deg, #000 0, rgba(0, 0, 0, 0.2) 82%, transparent 100%);
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .paper-head .container::before,
+    .paper-head .container::after {
+      content: "";
+      position: absolute;
+      width: 78px;
+      height: 78px;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .paper-head .container::before {
+      top: -30px;
+      left: 6px;
+      border-top: 3px solid rgba(36, 92, 138, 0.35);
+      border-left: 3px solid rgba(36, 92, 138, 0.35);
+    }
+    .paper-head .container::after {
+      right: 6px;
+      bottom: -14px;
+      border-right: 3px solid rgba(180, 68, 84, 0.35);
+      border-bottom: 3px solid rgba(180, 68, 84, 0.35);
+    }
+    header.paper-head::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -1px;
+      width: min(760px, calc(100% - 48px));
+      height: 2px;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), var(--highlight), transparent);
+    }
+    .paper-head .container {
+      position: relative;
+      z-index: 1;
+    }
+    h1.title {
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 3rem;
+      line-height: 1.15;
+      letter-spacing: 0;
+      color: var(--text);
+      margin: 0 auto 22px;
+      max-width: 23ch;
+      text-wrap: balance;
+    }
+    h1.title::after {
+      content: "";
+      display: block;
+      width: 164px;
+      height: 5px;
+      margin: 22px auto 0;
+      border-radius: 8px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--highlight));
+    }
+    .conference-subtitle {
+      margin: 0 auto 18px;
+      color: var(--accent);
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.5;
+      text-wrap: balance;
+    }
+    .dek {
+      max-width: 680px;
+      margin: 0 auto 26px;
+      color: var(--text-soft);
+      font-family: var(--serif);
+      font-size: 1.16rem;
+      line-height: 1.65;
+      text-wrap: balance;
+    }
+    .hero-ribbon {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      max-width: 760px;
+      margin: 0 auto 24px;
+    }
+    .ribbon-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 8px 12px;
+      overflow: hidden;
+      border: 1px solid rgba(216, 224, 232, 0.9);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--text-soft);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(21, 24, 31, 0.05);
+    }
+    .ribbon-item::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      background: var(--accent);
+    }
+    .ribbon-item:nth-child(2)::before { background: var(--highlight); }
+    .ribbon-item:nth-child(3)::before { background: var(--accent-2); }
+    .authors {
+      font-size: 1.05rem;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+    .authors .author {
+      display: inline-block;
+      margin: 0 8px;
+    }
+    .author-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 4px 0;
+    }
+    .affiliation {
+      font-size: 0.95rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 4px 24px;
+      margin-bottom: 8px;
+    }
+    .author-contact {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 4px 16px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      margin-bottom: 26px;
+    }
+    .author-contact a {
+      overflow-wrap: anywhere;
+    }
+
+    .links {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 18px;
+      background: linear-gradient(135deg, var(--text), #2b3340);
+      color: #fff !important;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      box-shadow: var(--shadow-soft);
+      transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .link-btn:hover {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+      text-decoration: none;
+    }
+    .link-btn svg { width: 14px; height: 14px; }
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      max-width: 700px;
+      margin: 28px auto 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--border);
+      box-shadow: var(--shadow-soft);
+    }
+    .hero-metric {
+      position: relative;
+      padding: 14px 16px 15px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.9);
+    }
+    .hero-metric::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 4px;
+      background: var(--accent);
+    }
+    .hero-metric:nth-child(2)::after { background: var(--accent-2); }
+    .hero-metric:nth-child(3)::after { background: var(--highlight); }
+    .hero-metric strong {
+      display: block;
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 1.42rem;
+      line-height: 1.05;
+    }
+    .hero-metric span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .mini-nav {
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 22px;
+      padding: 6px;
+      border: 1px solid rgba(216, 224, 232, 0.85);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: 0 8px 22px rgba(21, 24, 31, 0.06);
+    }
+    .mini-nav a {
+      padding: 7px 12px;
+      border-radius: 6px;
+      color: var(--text-soft);
+      font-size: 0.88rem;
+      font-weight: 700;
+      transition: background 0.16s ease, color 0.16s ease;
+    }
+    .mini-nav a:hover {
+      background: var(--bg-soft);
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* ============ SECTIONS ============ */
+    main {
+      position: relative;
+      overflow: hidden;
+    }
+    main::before {
+      content: "";
+      position: absolute;
+      top: 120px;
+      bottom: 120px;
+      left: max(16px, calc(50% - 595px));
+      width: 3px;
+      background: linear-gradient(180deg, transparent, rgba(36, 92, 138, 0.28), rgba(15, 118, 110, 0.26), rgba(180, 68, 84, 0.28), transparent);
+      pointer-events: none;
+    }
+    section {
+      position: relative;
+      padding: 64px 0 18px;
+    }
+    section:nth-of-type(even) {
+      background: linear-gradient(180deg, rgba(238, 244, 248, 0), rgba(238, 244, 248, 0.58), rgba(238, 244, 248, 0));
+    }
+    section h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 1.9rem;
+      color: var(--text);
+      margin-bottom: 22px;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+    section h2::after {
+      content: "";
+      flex: 1 1 auto;
+      height: 1px;
+      min-width: 44px;
+      background: linear-gradient(90deg, rgba(36, 92, 138, 0.28), transparent);
+    }
+    section h2::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--highlight));
+      box-shadow: 0 0 0 6px rgba(36, 92, 138, 0.1);
+    }
+    section h3 {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 1.2rem;
+      color: var(--text);
+      margin: 28px 0 12px;
+    }
+    section p {
+      color: var(--text-soft);
+      margin-bottom: 16px;
+      text-align: left;
+      hyphens: auto;
+    }
+    section p strong { color: var(--text); }
+
+    /* Abstract specifically */
+    .teaser {
+      padding-top: 38px;
+      padding-bottom: 0;
+      background:
+        linear-gradient(135deg, rgba(36, 92, 138, 0.08) 0 18%, transparent 18%),
+        linear-gradient(225deg, rgba(180, 68, 84, 0.08) 0 18%, transparent 18%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(238, 244, 248, 0.48));
+    }
+    .teaser figure {
+      margin-top: 0;
+      margin-bottom: 18px;
+    }
+    .teaser-note {
+      position: relative;
+      margin: 0 auto 12px;
+      padding: 18px 22px;
+      overflow: hidden;
+      border: 1px solid rgba(216, 224, 232, 0.95);
+      border-left: 4px solid var(--highlight);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 244, 221, 0.78));
+      box-shadow: 0 10px 24px rgba(21, 24, 31, 0.06);
+    }
+    .teaser-note::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 132px;
+      height: 100%;
+      background:
+        linear-gradient(90deg, rgba(180, 68, 84, 0.08) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(36, 92, 138, 0.08) 1px, transparent 1px);
+      background-size: 14px 14px;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+    .teaser-note p {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: var(--text-soft);
+      line-height: 1.65;
+    }
+    .teaser-note-title {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 1.22rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    #abstract p {
+      font-size: 1.02rem;
+      line-height: 1.7;
+    }
+
+    /* ============ FIGURES ============ */
+    figure {
+      position: relative;
+      margin: 32px 0 36px;
+      padding: 16px;
+      text-align: center;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(232, 242, 251, 0.88), rgba(255, 255, 255, 0.94) 34%, rgba(249, 236, 239, 0.72)),
+        var(--paper);
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    figure::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--highlight));
+    }
+    figure::after {
+      content: "";
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: 86px;
+      height: 50px;
+      background:
+        linear-gradient(90deg, rgba(36, 92, 138, 0.11) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(180, 68, 84, 0.11) 1px, transparent 1px);
+      background-size: 10px 10px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    figure:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    figure img {
+      max-width: 100%;
+      height: auto;
+      border: 0;
+      border-radius: 6px;
+      display: block;
+      margin: 0 auto;
+      background: #fff;
+    }
+    figure.figure-narrow img { max-width: 580px; }
+    figcaption {
+      position: relative;
+      z-index: 1;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-top: 12px;
+      text-align: left;
+      max-width: 780px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0 4px;
+    }
+    .teaser-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 7px 12px;
+      border: 1px solid rgba(36, 92, 138, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      box-shadow: 0 8px 18px rgba(21, 24, 31, 0.05);
+    }
+    .teaser-label::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--highlight);
+      box-shadow: 14px 0 0 var(--accent-2);
+    }
+    figcaption strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* ============ TL;DR / KEY FINDINGS ============ */
+    .tldr {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(232, 242, 251, 0.82)),
+        var(--paper);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      padding: 22px 24px;
+      margin: 0 0 12px;
+      border-radius: 8px;
+      box-shadow: var(--shadow-soft);
+    }
+    .tldr::after {
+      content: "";
+      position: absolute;
+      top: -22px;
+      right: -18px;
+      width: 150px;
+      height: 150px;
+      background:
+        linear-gradient(90deg, rgba(36, 92, 138, 0.1) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(180, 68, 84, 0.1) 1px, transparent 1px);
+      background-size: 18px 18px;
+      transform: rotate(8deg);
+      opacity: 0.8;
+      pointer-events: none;
+    }
+    .tldr h3 {
+      font-family: var(--sans);
+      font-weight: 900;
+      font-size: 0.78rem;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 10px;
+    }
+    .tldr ul {
+      margin-left: 1.2em;
+      color: var(--text-soft);
+    }
+    .tldr li {
+      position: relative;
+      list-style: none;
+      margin: 8px 0;
+      padding-left: 18px;
+    }
+    .tldr li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.68em;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .tldr li:nth-child(2)::before { background: var(--highlight); }
+    .tldr li:nth-child(3)::before { background: var(--accent-2); }
+    .tldr li:nth-child(4)::before { background: var(--accent-3); }
+    .tldr li strong { color: var(--text); }
+
+    /* ============ STATS ============ */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 24px 0 8px;
+    }
+    .stat {
+      position: relative;
+      overflow: hidden;
+      padding: 18px 16px;
+      text-align: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffffff, var(--surface-blue));
+      box-shadow: 0 8px 22px rgba(21, 24, 31, 0.055);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .stat:nth-child(2) { background: linear-gradient(180deg, #ffffff, var(--surface-green)); }
+    .stat:nth-child(3) { background: linear-gradient(180deg, #ffffff, var(--surface-rose)); }
+    .stat:nth-child(4) { background: linear-gradient(180deg, #ffffff, var(--surface-amber)); }
+    .stat:nth-child(5) { background: linear-gradient(180deg, #ffffff, #edf1ff); }
+    .stat::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 4px;
+      background: var(--accent);
+    }
+    .stat:nth-child(2)::before { background: var(--accent-2); }
+    .stat:nth-child(3)::before { background: var(--highlight); }
+    .stat:nth-child(4)::before { background: var(--accent-3); }
+    .stat:nth-child(5)::before { background: var(--accent-soft); }
+    .stat:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-soft);
+    }
+    .stat .n {
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 1.7rem;
+      color: var(--text);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .stat .l {
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    @media (max-width: 720px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ============ TABLE ============ */
+    table.results {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.94rem;
+      margin: 18px 0 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: 0 8px 22px rgba(21, 24, 31, 0.055);
+    }
+    table.results th, table.results td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    table.results thead th {
+      background: linear-gradient(135deg, #e8f2fb, #e6f5f1);
+      font-weight: 700;
+      font-size: 0.86rem;
+      color: var(--text);
+      letter-spacing: 0;
+      border-bottom: 2px solid var(--text);
+    }
+    table.results th.num,
+    table.results td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-family: var(--mono);
+      font-size: 0.88rem;
+    }
+    table.results tbody tr:hover { background: #f6fafc; }
+    table.results tbody tr:nth-child(even) { background: rgba(248, 250, 252, 0.58); }
+    .table-caption {
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.55;
+    }
+
+    /* ============ FOOTER ============ */
+    footer {
+      margin-top: 48px;
+      padding: 32px 0 40px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: center;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      background:
+        linear-gradient(90deg, rgba(36, 92, 138, 0.24), rgba(15, 118, 110, 0.18), rgba(180, 68, 84, 0.2)),
+        #15181f;
+    }
+    footer p { margin: 4px 0; color: #cbd5e1; text-align: center; }
+    .mono { font-family: var(--mono); }
+
+    /* ============ TAKEAWAYS ============ */
+    .takeaways-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 20px;
+    }
+    @media (min-width: 720px) {
+      .takeaways-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .takeaway {
+      position: relative;
+      overflow: hidden;
+      padding: 18px 20px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(232, 242, 251, 0.65)),
+        var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 22px rgba(21, 24, 31, 0.055);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .takeaway:nth-child(2) {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(230, 245, 241, 0.72));
+    }
+    .takeaway:nth-child(3) {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 236, 239, 0.72));
+    }
+    .takeaway:nth-child(4) {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 244, 221, 0.76));
+    }
+    .takeaway::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 4px;
+      background: var(--accent);
+    }
+    .takeaway:nth-child(2)::before { background: var(--accent-2); }
+    .takeaway:nth-child(3)::before { background: var(--highlight); }
+    .takeaway:nth-child(4)::before { background: var(--accent-3); }
+    .takeaway:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-soft);
+    }
+    .takeaway h4 {
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .takeaway p {
+      font-size: 0.94rem;
+      line-height: 1.55;
+      color: var(--text-soft);
+      margin: 0;
+      text-align: left;
+    }
+
+    /* simple highlight */
+    .hl { background: linear-gradient(transparent 58%, rgba(245, 185, 67, 0.55) 58%); padding: 0 1px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+      figure:hover,
+      .stat:hover,
+      .takeaway:hover,
+      .link-btn:hover {
+        transform: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body { font-size: 16px; }
+      .container { padding: 0 18px; }
+      header.paper-head { padding: 54px 0 34px; }
+      h1.title { font-size: 2.15rem; }
+      .dek { font-size: 1.04rem; }
+      .hero-ribbon { grid-template-columns: 1fr; max-width: 420px; }
+      .hero-metrics { grid-template-columns: 1fr; max-width: 420px; }
+      .mini-nav { width: 100%; }
+      main::before { display: none; }
+      section { padding: 48px 0 12px; }
+      section h2 { align-items: flex-start; font-size: 1.55rem; }
+      section h2::after { display: none; }
+      section h2::before { margin-top: 0.48em; }
+      figure { padding: 10px; }
+      figure::after { display: none; }
+      table.results {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+      }
+    }
+
+    @media (max-width: 460px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .authors .author { margin: 0 6px; }
+      .link-btn { width: 100%; justify-content: center; }
+      .mini-nav a { flex: 1 1 42%; text-align: center; }
+      .paper-head .container::before,
+      .paper-head .container::after { display: none; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <header class="paper-head">
+    <div class="container">
+      <h1 class="title">How Scaling VLMs Trades Cognitive Biases</h1>
+      <p class="conference-subtitle">Winter Conference on Applications of Computer Vision (WACV 2027)</p>
+      <p class="dek">A psychological lens for diagnosing sycophancy, authority bias, and logical inconsistency in vision-language models.</p>
+
+      <div class="hero-ribbon" aria-label="Bias taxonomy">
+        <div class="ribbon-item">Sycophancy</div>
+        <div class="ribbon-item">Authority Bias</div>
+        <div class="ribbon-item">Trap Spotting</div>
+      </div>
+
+      <div class="authors">
+        <div class="author-row">
+          <span class="author">Xiangrui Liu<sup>1</sup>,</span>
+          <span class="author">Man Luo<sup>2</sup>,</span>
+          <span class="author">Xinyuan Wang<sup>1</sup>,</span>
+          <span class="author">Forouzan Fallah<sup>1</sup>,</span>
+          <span class="author">Agneet Chatterjee<sup>1</sup>,</span>
+        </div>
+        <div class="author-row">
+          <span class="author">Longchao Da<sup>1</sup>,</span>
+          <span class="author">Hua Wei<sup>1</sup>,</span>
+          <span class="author">Chitta Baral<sup>1</sup>,</span>
+          <span class="author">Yanjie Fu<sup>1</sup>,</span>
+          <span class="author">Yezhou Yang<sup>1</sup></span>
+        </div>
+      </div>
+      <div class="affiliation">
+        <span><sup>1</sup>Arizona State University</span>
+        <span><sup>2</sup>Intel Labs</span>
+      </div>
+      <div class="author-contact">
+        <a href="mailto:xiangrui@asu.edu">xiangrui@asu.edu</a>
+      </div>
+
+      <div class="links">
+        <a class="link-btn" href="https://github.com/lxrswdd/AIpsych" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Code
+        </a>
+        <a class="link-btn" href="https://openaccess.thecvf.com/content/CVPR2026W/GRAIL-V/html/Liu_Investigating_VLM_Hallucination_from_a_Cognitive_Psychology_Perspective_A_First_CVPRW_2026_paper.html" target="_blank" rel="noopener">
+          Arxiv
+        </a>
+      </div>
+
+      <div class="hero-metrics" aria-label="Benchmark summary">
+        <div class="hero-metric"><strong>3,000</strong><span>Images</span></div>
+        <div class="hero-metric"><strong>60,000</strong><span>Questions</span></div>
+        <div class="hero-metric"><strong>120</strong><span>Human survey</span></div>
+      </div>
+
+      <nav class="mini-nav" aria-label="Page sections">
+        <a href="#abstract">Abstract</a>
+        <a href="#method">Method</a>
+        <a href="#results">Results</a>
+        <a href="#humans">Human Study</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ TEASER FIGURE ============ -->
+    <section class="teaser" aria-label="Teaser figure">
+      <div class="container">
+        <div class="teaser-label">Teaser figure</div>
+        <figure>
+          <img src="figure1-biases.png" alt="Illustration of sycophancy vs authority bias. Left: a VLM sees a pink cup but answers 'Orange' to please the questioner. Right: a model accepts the question's framing and says 'Orange' because it trusts the questioner.">
+          <figcaption>
+            <strong>Figure 1.</strong> An illustration of the cognitive biases in models.
+            <em>Left:</em> a VLM exhibits sycophancy by favoring the questioner's options
+            despite recognizing it is a pink cup. <em>Right:</em> a model demonstrates authority
+            bias by accepting the question's framing, also yielding the wrong answer.
+            Distinguishing between them requires a structured set of follow-up prompts (Figure 2).
+          </figcaption>
+        </figure>
+        <div class="teaser-note">
+          <p>
+            <span class="teaser-note-title">What if the model trusts the question more than the truth?</span>
+            Beyond engineering errors and sycophancy, AIpsych exposes <strong>authority bias</strong>:
+            when flawed answer choices are presented with confidence, VLMs often choose from them
+            anyway, even when visual evidence says otherwise.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABSTRACT ============ -->
+    <section id="abstract">
+      <div class="container">
+        <h2>Abstract</h2>
+        <p>
+          Hallucination remains a persistent challenge in Vision-Language Models (VLMs).
+          While usually attributed to technical constraints or sycophancy, these explanations
+          often overlook how hallucinations may mirror human-like cognitive biases. We propose
+          a psychological taxonomy for VLMs, categorizing biases such as sycophancy, logical
+          inconsistency, and a newly identified behavior: <strong>authority bias</strong>.
+        </p>
+        <p>
+          To study these, we developed <strong>AIpsych</strong>, a scalable benchmark designed
+          to reveal psychological tendencies in model responses. Our analysis of varying
+          architectures shows that as model size increases, VLMs exhibit a greater tendency of
+          sycophancy but reduced authority bias — suggesting that increased competence may come
+          at the cost of response integrity.
+        </p>
+
+        <div class="tldr">
+          <h3>Key Findings</h3>
+          <ul>
+            <li><strong>Authority bias is real and distinct.</strong> A new failure mode where models defer to a user's misleading framing even when visual evidence contradicts it — grounded in Milgram's obedience studies.</li>
+            <li><strong>Scaling trades one bias for another.</strong> As models grow, sycophancy <em>increases</em> while authority bias <em>decreases</em>. Authority bias ranges from 99.8% (InternVL3) to 3.4% (GPT).</li>
+            <li><strong>Humans share these tendencies — but spot the trap.</strong> 81.3% of human subjects choose the "else" escape hatch when offered. Models almost never do.</li>
+            <li><strong>Existing de-biasing techniques don't address this.</strong> Methods targeting demographic biases or language priors cannot resolve interpretive cognitive patterns.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FIGURE 2: METHOD ============ -->
+    <section id="method">
+      <div class="container">
+        <h2>Method &mdash; AIpsych</h2>
+        <p>
+          For every image, AIpsych asks four scaffolded sub-prompts. The model's path through
+          this question tree reveals which psychological factor produced its hallucination.
+          The first prompt embeds two flawed options; the rest disambiguate why the model fell
+          for them.
+        </p>
+
+        <figure>
+          <img src="figure2-flow.png" alt="Sample image with question set and classification flow. The classification logic determines whether the model exhibits Type II Sycophancy, Logical Inconsistency, Type I Sycophancy, or Authority Bias based on its yes/no answers to the four sub-prompts.">
+          <figcaption>
+            <strong>Figure 2.</strong> A sample image (left) with its question set from AIpsych,
+            and an illustration of the classification flow (right). If a model selects the
+            trap option for the first prompt, subsequent prompts are presented to probe its
+            psychological behaviour. Colored phrases highlight representative prompt elements.
+          </figcaption>
+        </figure>
+
+        <h3>The four diagnostic categories</h3>
+        <p>
+          Combining the model's yes/no replies to <em>(i)</em> the trap and <em>(ii)</em> the
+          mistake-check yields a clean 2×2:
+        </p>
+        <table class="results">
+          <thead>
+            <tr>
+              <th>Trap?</th>
+              <th>Mistake noticed?</th>
+              <th>Behaviour</th>
+              <th>Interpretation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>No</td><td>No</td>
+              <td><strong>Authority Bias</strong></td>
+              <td>Did not identify the trap; truly believes the prompt's framing.</td>
+            </tr>
+            <tr>
+              <td>No</td><td>Yes</td>
+              <td><strong>Type I Sycophancy</strong></td>
+              <td>Initially denies the mistake; flips when told not to be sycophantic.</td>
+            </tr>
+            <tr>
+              <td>Yes</td><td>Yes</td>
+              <td><strong>Type II Sycophancy</strong></td>
+              <td>Acknowledges the flaw, complies with it anyway. Weak indicator.</td>
+            </tr>
+            <tr>
+              <td>Yes</td><td>No</td>
+              <td><strong>Logical Inconsistency</strong></td>
+              <td>Identifies a mistake then takes it back under instruction. Self-conflict.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ BENCHMARK STATS ============ -->
+    <section>
+      <div class="container">
+        <h2>Benchmark statistics</h2>
+        <p>
+          AIpsych contains 2,000 images from the COCO 2014 validation set and 1,000 images from
+          Visual Genome. Each image carries 5 sets of prompts, each with 4 sub-prompts &mdash;
+          yielding 60,000 questions total. We evaluate 35 model variants across 10 VLM families.
+        </p>
+
+        <div class="stats-row">
+          <div class="stat"><span class="n">3,000</span><span class="l">Images</span></div>
+          <div class="stat"><span class="n">60,000</span><span class="l">Questions</span></div>
+          <div class="stat"><span class="n">35</span><span class="l">Model variants</span></div>
+          <div class="stat"><span class="n">10</span><span class="l">VLM families</span></div>
+          <div class="stat"><span class="n">120</span><span class="l">Human survey</span></div>
+        </div>
+
+        <figure class="figure-narrow">
+          <img src="figure3-categories.png" alt="Pie chart showing the distribution of subject categories in the AIpsych Benchmark: Human 25%, Vehicles &amp; Transport 18%, Home furniture 17%, Electronics &amp; Appliances 13%, Food 13%, Flora &amp; fauna 7%, Other 7%.">
+          <figcaption>
+            <strong>Figure 3.</strong> Distribution of subject categories in the AIpsych benchmark.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============ FIGURE 4: RESULTS ============ -->
+    <section id="results">
+      <div class="container">
+        <h2>Results &mdash; scaling trends</h2>
+        <p>
+          We tested three hypotheses: (1) larger models are <em>more</em> sycophantic; (2) smaller
+          models are more vulnerable to authority bias; (3) increasing size reduces logical
+          inconsistencies. The results across 35 variants confirm (1) and (2) clearly; (3) is
+          counter-intuitively mixed.
+        </p>
+
+        <figure>
+          <img src="figure4-trends.png" alt="Scaling trends arranged by model family in rows: InternVL, LLaVA-Onevision, Ovis2, Qwen-VL, Gemma, and GPT. Columns show Sycophancy I + II, Authority Bias, Trap Spotting, Logical Inconsistency, Else Trigger, and Reliability Score (ReS), with model size on the horizontal axis.">
+          <figcaption>
+            <strong>Figure 4.</strong> Experimental trends across model scales. Rows group model
+            families; columns show six diagnostic metrics. Sycophancy and reliability generally
+            increase with model size, while authority bias generally decreases.
+          </figcaption>
+        </figure>
+
+        <h3>Highlights</h3>
+        <div class="takeaways-grid">
+          <div class="takeaway">
+            <h4>Sycophancy increases with scale</h4>
+            <p>Larger models often acknowledge a mistake in the prompt yet still provide a
+              trap-based answer &mdash; alignment training may over-optimise for user preference.</p>
+          </div>
+          <div class="takeaway">
+            <h4>Authority bias decreases with scale</h4>
+            <p>From <span class="hl">99.8% in InternVL3 to 3.4% in GPT-4o</span>. Larger models
+              are more robust to misleading user framings.</p>
+          </div>
+          <div class="takeaway">
+            <h4>Reliability score rises overall</h4>
+            <p>Gemma 4, GPT-4o and Qwen2.5-VL-72B lead. Ovis 2 climbs steadily; LLaVA actually
+              gets worse as it scales due to rising authority bias.</p>
+          </div>
+          <div class="takeaway">
+            <h4>The "else" escape hatch</h4>
+            <p>Most models reject the valid <em>else</em> option in favour of trap options &mdash;
+              proof that they are not just attending to context but specifically deferring to
+              the user's flawed framing.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FIGURE 5: ATTENTION ============ -->
+    <section>
+      <div class="container">
+        <h2>Mechanism: sees and ignores vs. perceptual capture</h2>
+        <p>
+          Attention maps cleanly separate the two failure modes. In <strong>sycophancy</strong>
+          cases the model's visual backbone correctly attends to the target object — the
+          hallucination is a downstream <em>choice</em>. In <strong>authority bias</strong> cases
+          the model's gaze is captured by the coordinates suggested in the text, never landing
+          on the real object at all.
+        </p>
+
+        <figure>
+          <img src="figure5-attention.png" alt="Three side-by-side images showing attention maps. Left: Sycophancy — the model correctly perceives the basket in the bottom-left. Middle: the input image. Right: Authority Bias — the model's attention focuses on the manipulated coordinates suggested by the prompt, in the top-right.">
+          <figcaption>
+            <strong>Figure 5.</strong> Visualizing cognitive bias via attention map divergence.
+            <em>Left (Sycophancy):</em> the attention map confirms the model correctly perceives
+            the basket, prioritizing user-alignment over facts.
+            <em>Right (Authority Bias):</em> the model's gaze focuses on the manipulated
+            coordinates in the prompt, demonstrating a top-down failure where textual authority
+            overrides objective visual evidence.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ============ HUMAN STUDY ============ -->
+    <section id="humans">
+      <div class="container">
+        <h2>Human study</h2>
+        <p>
+          We surveyed 120 undergraduate and graduate subjects (1,440 responses), asking them the
+          identical prompts under instructions matching the model evaluation. Humans display the
+          same psychological tendencies — but at much lower rates, and they overwhelmingly
+          choose the "else" option when offered.
+        </p>
+
+        <table class="results">
+          <thead>
+            <tr>
+              <th>Behaviour</th>
+              <th class="num">Humans</th>
+              <th class="num">GPT-4o</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Type I Sycophancy</td><td class="num">0.3%</td><td class="num">7.7%</td></tr>
+            <tr><td>Type II Sycophancy</td><td class="num">30.6%</td><td class="num">66.4%</td></tr>
+            <tr><td>Authority Bias</td><td class="num">12.8%</td><td class="num">4.1%</td></tr>
+            <tr><td>Logical Inconsistency</td><td class="num">1.1%</td><td class="num">10.6%</td></tr>
+            <tr><td>Trap Spotting</td><td class="num">54.7%</td><td class="num">11.3%</td></tr>
+            <tr><td>"Else" Trigger</td><td class="num">81.3%</td><td class="num">30.9%</td></tr>
+            <tr><td>Full Response Rate</td><td class="num">21.0%</td><td class="num">86.5%</td></tr>
+          </tbody>
+        </table>
+        <p class="table-caption">
+          <strong>Table 1.</strong> Percentage of responses exhibiting each behaviour or response-format metric. Humans
+          recognise the trap and use the "else" escape hatch far more often than the strongest
+          proprietary model. While models have learned some human-like behaviours, alignment
+          with humans remains imperfect.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 &middot; The benchmark and code are released under <span class="mono">CC&nbsp;BY&nbsp;4.0</span>.</p>
+      <p>Hosted on GitHub Pages.</p>
+    </div>
+  </footer>
+
+</body>
+</html>
